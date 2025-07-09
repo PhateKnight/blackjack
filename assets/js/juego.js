@@ -67,12 +67,30 @@ const pedirCarta = () => {
 //La regla que se sigue es la siguiente:
 //Revisa si el valor extraido no es un numero, si lo es entonces retorna el valor multiplicado por 1 para devolver un number y no un string
 //Si el valor no es un numero valida si es igual a A, si lo es entonces retorna 11 y sino entonces 10
-const valorCarta = (carta = '') => {
+const valorCarta = (carta = '', tipoJugador) => {
     const valor = carta.substring(0, carta.length - 1); //Los strings en Js pueden ser tratados como arrays.
     
     //Tomar en cuenta que J, K y Q tienen un valor de 10, a excepcion de A que vale 11
-    return (!isNaN(valor)) ? valor * 1 :
-        (valor === 'A') ? 11 : 10;
+    if(!isNaN(valor)){
+        return valor * 1;
+    }
+
+    if(valor != 'A'){
+        return 10;
+    }
+
+    if(tipoJugador === "jugador"){
+        let desicionAs = confirm("¿Desea que el As valga 11? (En caso negativo, valdra 1)", false)
+        return (desicionAs) ? 11 : 1;
+    }
+
+    if(tipoJugador === "computador"){
+        if(puntosComputadora + 11 <= 21){
+            return 11;
+        }else{
+            return 1;
+        }
+    }
 }
 
 // Función encarga de elegir un ganador segun la puntuación de la computadora y el jugador
@@ -97,7 +115,7 @@ const turnoComputadora = ( puntosMinimos ) => {
     do {
         const carta = pedirCarta();
 
-        puntosComputadora += valorCarta(carta);
+        puntosComputadora += valorCarta(carta, "computador");
         puntuacionComputador.innerHTML = puntosComputadora;
 
         const cartaNueva = document.createElement('img');
@@ -115,7 +133,7 @@ btnPedirCarta.addEventListener('click', () => {
 
     const carta = pedirCarta();
 
-    puntosJugador += valorCarta(carta);
+    puntosJugador += valorCarta(carta, "jugador");
     puntuacionJugador.innerHTML = puntosJugador;
 
     const cartaNueva = document.createElement('img');
@@ -144,7 +162,7 @@ btnPedirCarta.addEventListener('click', () => {
     }
 })
 
-//Metodo encargado de plantar al jugadoir y genera los turnos de la computadora para identificar si el jugador gana o pierde segun las puntuaciones
+//Metodo encargado de plantar al jugador y genera los turnos de la computadora para identificar si el jugador gana o pierde segun las puntuaciones
 btnPlantarse.addEventListener('click', () => {
     btnPedirCarta.disabled = true;
     btnPlantarse.disabled = true;
