@@ -71,8 +71,16 @@ const valorCarta = (carta = '') => {
     const valor = carta.substring(0, carta.length - 1); //Los strings en Js pueden ser tratados como arrays.
     
     //Tomar en cuenta que J, K y Q tienen un valor de 10, a excepcion de A que vale 11
-    return (!isNaN(valor)) ? valor * 1 :
-        (valor === 'A') ? 11 : 10;
+    if(!isNaN(valor)){
+        return valor * 1;
+    }
+
+    if(valor != 'A'){
+        return 10;
+    }
+
+    let desicionAs = confirm("¿Desea que el As valga 11? (En caso negativo, valdra 1)", false)
+    return (desicionAs) ? 11 : 1;
 }
 
 // Función encarga de elegir un ganador segun la puntuación de la computadora y el jugador
@@ -144,7 +152,7 @@ btnPedirCarta.addEventListener('click', () => {
     }
 })
 
-//Metodo encargado de plantar al jugadoir y genera los turnos de la computadora para identificar si el jugador gana o pierde segun las puntuaciones
+//Metodo encargado de plantar al jugador y genera los turnos de la computadora para identificar si el jugador gana o pierde segun las puntuaciones
 btnPlantarse.addEventListener('click', () => {
     btnPedirCarta.disabled = true;
     btnPlantarse.disabled = true;
