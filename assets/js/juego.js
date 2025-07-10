@@ -7,190 +7,193 @@
 
 */
 
-let deck = [];
+const moduloBlackJack = (() => {
+    'use strict' //Es una forma de decirle al compilador que revise el codigo de forma estricta
 
-//Tipos y especiales hace referencia a los tipos de cartas y a los comodines/especiales que existen de cada una de ellas 
-const tipos = ['C', 'D', 'H', 'S'] 
-const especiales = ['A', 'J', 'Q', 'K']
+    let deck = [];
 
-//Referencias del HTML
-const btnPedirCarta = document.querySelector('#btnPedirCarta');
-const btnPlantarse = document.querySelector('#btnPlantarse')
-const btnNuevoJuego = document.querySelector('#btnNuevoJuego')
-const puntuaciones = document.querySelectorAll('h2 small');
-const puntuacionJugador = puntuaciones[0];
-const puntuacionComputador = puntuaciones[1];
-const divCartasJugador = document.querySelector('#jugador-cartas');
-const divCartasComputador = document.querySelector('#computadora-cartas');
+    //Tipos y especiales hace referencia a los tipos de cartas y a los comodines/especiales que existen de cada una de ellas 
+    const tipos = ['C', 'D', 'H', 'S'],
+        especiales = ['A', 'J', 'Q', 'K']
 
-//Inicializar contadores y estado de los botones
-let puntosJugador = 0;
-let puntosComputadora = 0;
-btnNuevoJuego.disabled = true;
-btnPlantarse.disabled = true;
+    //Referencias del HTML
+    const btnPedirCarta = document.querySelector('#btnPedirCarta'),
+        btnPlantarse = document.querySelector('#btnPlantarse'),
+        btnNuevoJuego = document.querySelector('#btnNuevoJuego'),
+        puntuacionesHtml = document.querySelectorAll('h2 small'),
+        divCartasJugadores = document.querySelectorAll('.divCartas')
 
-//Crea el Deck, tomando en cuenta los array de tipos y especiales, donde genera cada nombre de carta y despues las desordena con ayuda de underscore y el metodo shuffle. Retorna el deck de cartas.
-const crearDeck = () => {
+    //Inicializar contadores y estado de los botones
+    let puntosJugadores = [];
+    btnPlantarse.disabled = true;
+    btnPedirCarta.disabled = true;
 
-    for(let tipo of tipos){
-        for(let i = 2; i <= 10; i++){
-            deck.push(i + tipo);
+    //Funcion para inicializar el juego
+    const inicializarJuego = (numJugadores = 2) => {
+        deck = crearDeck();
+        puntosJugadores = [];
+
+        for(let contador = 1; contador <= numJugadores; contador++){
+            puntosJugadores.push(0);
+        };
+
+        puntuacionesHtml.forEach(puntuacion => puntuacion.innerText = 0);
+
+        divCartasJugadores.forEach(divCartas => divCartas.innerHTML = '');
+
+        btnNuevoJuego.disabled = true;
+        btnPedirCarta.disabled = false;
+        btnPlantarse.disabled = true;
+    }
+
+    //Crea el Deck, tomando en cuenta los array de tipos y especiales, donde genera cada nombre de carta y despues las desordena con ayuda de underscore y el metodo shuffle. Retorna el deck de cartas.
+    const crearDeck = () => {
+        deck = [];
+
+        for(let tipo of tipos){
+            
+            for(let i = 2; i <= 10; i++){
+                deck.push(i + tipo);
+            }
+            
+            for(let especial of especiales){
+                deck.push(especial + tipo)
+            }
         }
+
+        return _.shuffle(deck);
     }
-    
-    for(let tipo of tipos){
-        for(let especial of especiales){
-            deck.push(especial + tipo)
+
+    //Función encargada de pedir una carta al Deck y que retorna el nombre de la carta sin su valor. 
+    // En caso de que el deck este vacio arroja un error.
+    const pedirCarta = () => {
+        if ( deck.length === 0 ){
+            throw 'Error: No hay más cartas en el Deck';
         }
+
+        return deck.pop()
     }
 
-    deck = _.shuffle(deck);
-
-    return deck;
-}
-
-
-//Función encargada de pedir una carta al Deck y que retorna el nombre de la carta sin su valor. 
-// En caso de que el deck este vacio arroja un error.
-const pedirCarta = () => {
-    
-    if ( deck.length === 0 ){
-        throw 'Error: No hay más cartas en el Deck';
-    }
-
-    const carta = deck.pop()
-
-    return carta;
-}
-
-//Recibe el nombre de la carta y extrae el valor que tiene asignado, ya sea del 1 al 10 o si es una As, J, Q y K
-//La regla que se sigue es la siguiente:
-//Revisa si el valor extraido no es un numero, si lo es entonces retorna el valor multiplicado por 1 para devolver un number y no un string
-//Si el valor no es un numero valida si es igual a A, si lo es entonces retorna 11 y sino entonces 10
-const valorCarta = (carta = '', tipoJugador) => {
-    const valor = carta.substring(0, carta.length - 1); //Los strings en Js pueden ser tratados como arrays.
-    
-    //Tomar en cuenta que J, K y Q tienen un valor de 10, a excepcion de A que vale 11
-    if(!isNaN(valor)){
-        return valor * 1;
-    }
-
-    if(valor != 'A'){
-        return 10;
-    }
-
-    if(tipoJugador === "jugador"){
-        let desicionAs = confirm("¿Desea que el As valga 11? (En caso negativo, valdra 1)", false)
-        return (desicionAs) ? 11 : 1;
-    }
-
-    if(tipoJugador === "computador"){
-        if(puntosComputadora + 11 <= 21){
-            return 11;
-        }else{
-            return 1;
+    //Recibe el nombre de la carta y extrae el valor que tiene asignado, ya sea del 1 al 10 o si es una As, J, Q y K
+    //La regla que se sigue es la siguiente:
+    //Revisa si el valor extraido no es un numero, si lo es entonces retorna el valor multiplicado por 1 para devolver un number y no un string
+    //Si el valor no es un numero valida si es igual a A, si lo es entonces revisa si es el turno del jugador o del computador, de ser el jugador permite que eliga que valor quiere que tenga (11 o 1) si es computador lo hace en automatico
+    const valorCarta = (carta = '', numJugador) => {
+        const valor = carta.substring(0, carta.length - 1); //Los strings en Js pueden ser tratados como arrays.
+        
+        //Tomar en cuenta que J, K y Q tienen un valor de 10, a excepcion de A que vale 11
+        if(!isNaN(valor)){
+            return valor * 1;
         }
-    }
-}
 
-// Función encarga de elegir un ganador segun la puntuación de la computadora y el jugador
-const elegirGanador = () => {
-    let mensaje = '';
-
-    if(puntosComputadora === puntosJugador){
-        mensaje = 'Empate, nadie gana. Intenta de nuevo!';
-    }else if(puntosComputadora > puntosJugador && puntosComputadora <= 21){
-        mensaje = 'Perdiste, intenta de nuevo!';
-    }else if(puntosJugador <= 21){
-        mensaje = 'Ganaste, felicidades!';
-    }else{
-        mensaje = 'Perdiste, intenta de nuevo!';
+        if(valor != 'A'){
+            return 10;
+        }
+        
+        //Decide si es más propiado que el As valga 11 o 1 segun los puntos del jugador
+        return (puntosJugadores[numJugador] + 11 <= 21) ? 11 : 1;
     }
 
-    alert(mensaje);
-}
+    //Turno: 0 = primer jugador y el ultimo será la computador
+    const sumarPuntaje = (carta, numTurno) => {
+        puntosJugadores[numTurno] += valorCarta(carta, numTurno);
+        puntuacionesHtml[numTurno].innerHTML = puntosJugadores[numTurno];
 
-//Genera los turnos de la computadora pidiendo cartas, tratando de obtener un numero mayor a puntosMinimos (puntuacion del usuario), siempre y cuando este sea menor a 21.
-const turnoComputadora = ( puntosMinimos ) => {
-    do {
-        const carta = pedirCarta();
+        return puntosJugadores[numTurno];
+    }
 
-        puntosComputadora += valorCarta(carta, "computador");
-        puntuacionComputador.innerHTML = puntosComputadora;
-
+    const insertarCarta = (carta, numTurno) => {
         const cartaNueva = document.createElement('img');
         cartaNueva.classList.add('carta');
         cartaNueva.src = `assets/cartas/${carta}.png`;
-        divCartasComputador.append(cartaNueva);
-
-    } while ( (puntosComputadora < puntosMinimos) && (puntosMinimos <= 21) );
-}
-
-// Eventos al dar click en botones
-
-// Metodo encargado de esperar el click en el boton 'Pedir Carta' para generar un turno del jugador, asi como agregar la carta al front y actualizar la puntuación
-btnPedirCarta.addEventListener('click', () => {
-
-    const carta = pedirCarta();
-
-    puntosJugador += valorCarta(carta, "jugador");
-    puntuacionJugador.innerHTML = puntosJugador;
-
-    const cartaNueva = document.createElement('img');
-    cartaNueva.classList.add('carta');
-    cartaNueva.src = `assets/cartas/${carta}.png`;
-    divCartasJugador.append(cartaNueva);
-
-    btnNuevoJuego.disabled = false;
-    btnPlantarse.disabled = false;
-
-    if(puntosJugador > 21){
-        btnPedirCarta.disabled = true;
-        btnPlantarse.disabled = true;
-        turnoComputadora(puntosJugador);
-        setTimeout(() => {
-            elegirGanador();
-        }, 500)
-    }else if(puntosJugador === 21){
-        btnPedirCarta.disabled = true;
-        btnPlantarse.disabled = true;
-
-        turnoComputadora(puntosJugador);
-        setTimeout(() => {
-            elegirGanador();
-        }, 500)
+        divCartasJugadores[numTurno].append(cartaNueva);
     }
-})
 
-//Metodo encargado de plantar al jugador y genera los turnos de la computadora para identificar si el jugador gana o pierde segun las puntuaciones
-btnPlantarse.addEventListener('click', () => {
-    btnPedirCarta.disabled = true;
-    btnPlantarse.disabled = true;
+    //Genera los turnos de la computadora pidiendo cartas, tratando de obtener un numero mayor a puntosMinimos (puntuacion del usuario), siempre y cuando este sea menor a 21.
+    const turnoComputadora = ( puntosMinimos ) => {
+        let puntosComputadora = 0;
+        
+        do {
+            const carta = pedirCarta();
 
-    turnoComputadora(puntosJugador);
-           
-    setTimeout(() => {
-        elegirGanador();
-    }, 500)
-})
+            insertarCarta(carta, puntosJugadores.length - 1);
+            puntosComputadora = sumarPuntaje(carta, puntosJugadores.length - 1);
+
+        } while ( (puntosComputadora < puntosMinimos) && (puntosMinimos <= 21) );
+    }
+
+    // Función encarga de elegir un ganador segun la puntuación de la computadora y el jugador
+    const elegirGanador = () => {
+        let mensaje = '';
+        const [puntosJugador, puntosComputadora] = puntosJugadores;
+
+        if(puntosComputadora === puntosJugador){
+            mensaje = 'Empate, nadie gana. Intenta de nuevo!';
+        }else if(puntosComputadora > puntosJugador && puntosComputadora <= 21){
+            mensaje = 'Perdiste, intenta de nuevo!';
+        }else if(puntosJugador <= 21){
+            mensaje = 'Ganaste, felicidades!';
+        }else{
+            mensaje = 'Perdiste, intenta de nuevo!';
+        }
+
+        alert(mensaje);
+    }
+
+    // ========================== Eventos al dar click en botones ==========================
+
+    // Metodo encargado de esperar el click en el boton 'Pedir Carta' para generar un turno del jugador, asi como agregar la carta al front y actualizar la puntuación
+    btnPedirCarta.addEventListener('click', () => {
+
+        const carta = pedirCarta();
+
+        insertarCarta(carta, 0)
+        const puntosJugador = sumarPuntaje(carta, 0);
+        
+        btnNuevoJuego.disabled = false;
+        btnPlantarse.disabled = false;
+
+        if(puntosJugador > 21){
+            btnPedirCarta.disabled = true;
+            btnPlantarse.disabled = true;
+            turnoComputadora(puntosJugador);
+            setTimeout(() => {
+                elegirGanador();
+            }, 500)
+        }else if(puntosJugador === 21){
+            btnPedirCarta.disabled = true;
+            btnPlantarse.disabled = true;
+
+            turnoComputadora(puntosJugador);
+            setTimeout(() => {
+                elegirGanador();
+            }, 500)
+        }
+    })
+
+    //Metodo encargado de plantar al jugador y genera los turnos de la computadora para identificar si el jugador gana o pierde segun las puntuaciones
+    btnPlantarse.addEventListener('click', () => {
+        btnPedirCarta.disabled = true;
+        btnPlantarse.disabled = true;
+
+        const puntosJugador = puntosJugadores[0];
+
+        turnoComputadora(puntosJugador);
+            
+        setTimeout(() => {
+            elegirGanador();
+        }, 500)
+    })
 
 
-//Meotodo encargado de iniciar un nuevo juego limpiando la mesa de juego, creando un nuevo deck y reiniciando las puntuaciones
-btnNuevoJuego.addEventListener('click', () => {
-    deck = []
-    deck = crearDeck();
+    //Meotodo encargado de iniciar un nuevo juego limpiando la mesa de juego, creando un nuevo deck y reiniciando las puntuaciones
+    btnNuevoJuego.addEventListener('click', () => {
+        inicializarJuego();
+    })
 
-    puntosComputadora = 0;
-    puntosJugador = 0;
-    puntuacionComputador.innerHTML = puntosComputadora
-    puntuacionJugador.innerHTML = puntosJugador
-
-    divCartasComputador.innerHTML = '';
-    divCartasJugador.innerHTML = '';
-
-    btnNuevoJuego.disabled = true;
-    btnPedirCarta.disabled = false;
-    btnPlantarse.disabled = true;
-})
-
-crearDeck();
+    // Lo que se se coloque dentro del return sera accesible fuera del modulo
+    // Se pueden enviar las propiedades como un objeto literal para cambiar la forma en que se llaman, en caso de que sea necesario
+    return {
+        nuevoJuego: inicializarJuego,
+    };
+})();
